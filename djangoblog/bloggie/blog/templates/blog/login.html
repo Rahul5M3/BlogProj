@@ -1,0 +1,43 @@
+{% extends 'blog/base.html' %}
+
+{% block loginr %}
+    {% if request.path == '/catalog/login/' %}
+        <a href="{% url 'blog-register' %}" id="auth-links">
+            <span></span>
+            <span></span>
+            <span></span>
+            <span></span>
+            Register
+        </a>
+
+    {% endif %}
+{% endblock %}
+
+{% block content %}
+    <form method="POST" style="background-color: white; padding: 6px; margin-top: 1rem;">
+        {% csrf_token %}
+
+        {% if messages %}
+        <div class="alert alert-info" role="alert">
+            {% for message in messages %}
+            {{ message }}
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <h2><strong>Login</strong></h2> <br>
+        <div class="mb-3">
+            <label for="exampleInputUsername" class="form-label">Username</label>
+            <input type="text" name="username" class="form-control" id="exampleInputUsername" aria-describedby="emailHelp">
+        </div>
+        <div class="mb-3">
+        <label for="exampleInputPassword1" class="form-label">Password</label>
+        <input type="password" name="password" class="form-control" id="exampleInputPassword1">
+        </div>
+        <!-- <div class="mb-3 form-check">
+        <input type="checkbox" class="form-check-input" id="exampleCheck1">
+        <label class="form-check-label" for="exampleCheck1">Check me out</label>
+        </div> -->
+        <button type="submit" class="btn btn-primary">Login</button>
+</form>
+{% endblock %}
