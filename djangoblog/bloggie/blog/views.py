@@ -2,59 +2,69 @@ from django.shortcuts import render,redirect
 from django.http import HttpResponse
 from . import models
 from django.contrib.auth.models import User
-from django.contrib import messages
-from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
+from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView
+from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 
 
 # Create your views here.
 
-@login_required(login_url='blog-login')
-def home(request):
-    posts=models.Post.objects.all()
-    return render(request,'blog/home.html', {"posts":posts})
+# @login_required(login_url='blog-login')
+# def home(request):
+#     posts=models.Post.objects.all()
+#     return render(request,'blog/home.html', {"posts":posts})
 
-def about(request):
-    return render(request, 'blog/about.html')
+# def about(request):
+#     return render(request, 'blog/about.html')
 
-def register(request):
-    if request.method=='POST':
-        username=request.POST.get('username')
-        email=request.POST.get('email')
-        password=request.POST.get('password')
 
-        if User.objects.filter(username=username).exists():
-            messages.error(request, "Username already exist")
-            return redirect('blog-register')
+class PostListView(LoginRequiredMixin,ListView):
+    model=models.Post
+    template_name='blog/home.html'
+    ordering=['-date_posted']
 
-        user=User.objects.create_user(username=username, email=email)
-        user.set_password(password)
-        user.save()
-        messages.success(request, "Successfull Registered")
-        return redirect('register/')
-
-    return render(request, 'blog/register.html')
-
-def login_page(request):
-
-    if request.method=='POST':
-        username=request.POST.get('username')
-        password=request.POST.get('password')
-
-        if User.objects.filter(username=username).exists()==False:
-            messages.error(request, "No such username exist")
-            return redirect('blog-login')
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
         
-        if authenticate(username=username, password=password) is None:
-            messages.error(request, "Invalid username or password")
-            return redirect('blog-login')
+        # Get the latest three posts separately
+        latest_posts = models.Post.objects.order_by('-date_posted')[:3]
+        
+        # Add latest posts to the context
+        context['latest_posts'] = latest_posts
+        return context
 
-        else :
-            login(request,authenticate(username=username, password=password))
-            return redirect('blog-home')
+class PostDetailView(LoginRequiredMixin,DetailView):
+    model=models.Post
 
-    return render(request, 'blog/login.html')
+class PostCreate(LoginRequiredMixin,CreateView):
+    model=models.Post  
+    fields=['title','content']  
 
-def logout_page(request):
-    logout(request)
-    return redirect('blog-login')
+    def form_valid(self, form):
+        form.instance.author = self.request.user 
+        return super().form_valid(form)
+    
+class PostUpdate(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
+    model=models.Post    
+    fields=['title','content'] 
+
+    def form_valid(self, form):
+        form.instance.author = self.request.user  
+        return super().form_valid(form)
+    
+    def test_func(self) :
+        post=self.get_object()
+        if self.request.user==post.author :
+            return True
+        return False
+    
+class PostDelete(LoginRequiredMixin,UserPassesTestMixin, DeleteView):
+    model=models.Post
+    success_url='/catalog/'
+
+    def test_func(self):
+        post=self.get_object()
+        if self.request.user==post.author:
+            return True
+        return False
+        
